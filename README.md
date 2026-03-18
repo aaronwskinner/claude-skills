@@ -8,6 +8,20 @@ Skills live in `.claude/skills/<skill-name>/` in your project (or `~/.claude/ski
 
 ## Skills in This Repo
 
+> Together, `apply-job` and `interview-prep` form a complete AI-native job search workflow — from application through final round.
+
+### [`/apply-job`](./apply-job/)
+
+Full job application workflow — from job posting URL to tailored resume, cover letter, and tracker entry.
+
+Given a job URL, Claude fetches the JD, maps your experience to requirements, tailors your resume from pre-written bullet variations, writes a problem-solution cover letter with company-specific research, and uploads everything to Drive.
+
+**Requires:** `PROFILE.md`, `BULLETS.md`, `CONTEXT.md` in your project root. See [`apply-job/SETUP.md`](./apply-job/SETUP.md).
+
+**Trigger:** `/apply-job <job-url>`
+
+---
+
 ### [`/interview-prep`](./interview-prep/)
 
 Build structured interview prep docs for any upcoming interview — phone screens through final rounds.
