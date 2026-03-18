@@ -42,6 +42,16 @@ Daily morning check-in that pulls health/recovery data, builds a dashboard, gath
 
 **Trigger:** `/standup`
 
+### [`/debrief`](./debrief/)
+
+Process an interview transcript after a call. Extracts what went well, key intel about the role/process/team, what the next round will likely probe, and action items — then updates your tracker, memory files, and weekly plan automatically.
+
+**Requires:** Google Drive API auth (to fetch transcripts from Google Docs) + tracker script. See [`apply-job/SETUP.md`](./apply-job/SETUP.md) for auth setup.
+
+**Trigger:** `/debrief [company]` or share a Google Docs transcript link
+
+---
+
 ### [`/plan-week`](./plan-week/)
 
 Sunday evening planning workflow. Scores last week, sets force-ranked priorities (pushes back on "all P1"), builds a full Mon–Sun task breakdown, creates calendar focus blocks, and opens a visual dashboard.
@@ -51,6 +61,16 @@ Integrates with `/plan-workout` for gym sessions and feeds `/standup` each morni
 **Requires:** `weekly-plan.md`, `career-strategy.md`, `weekly-history.md` memory files + calendar scripts. See [`plan-week/SETUP.md`](./plan-week/SETUP.md).
 
 **Trigger:** `/plan-week` (or `/plan-week test` for dry run)
+
+---
+
+### [`/review-week`](./review-week/)
+
+End of week scoring. Counts completed vs. incomplete tasks per priority level, surfaces patterns (chronic carry-forwards, P1 neglect, overcommitment), updates history, and seeds next week's priorities.
+
+Pairs with `/plan-week` — run it Friday or Sunday before planning the next week.
+
+**Trigger:** `/review-week`
 
 ---
 
