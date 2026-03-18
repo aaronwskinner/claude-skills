@@ -42,6 +42,14 @@ Daily morning check-in that pulls health/recovery data, builds a dashboard, gath
 
 **Trigger:** `/standup`
 
+### [`/plan-workout`](./plan-workout/)
+
+Plan the coming week's workout sessions. Reads your spreadsheet history, applies micro-progression (last reps + 1, load increase at 3x12), handles deload weeks, flags recovery issues from wearable data, and compresses sessions automatically when you have a shorter window.
+
+**Requires:** Google Sheets workout tracker + optional wearable recovery script. See [`plan-workout/SETUP.md`](./plan-workout/SETUP.md).
+
+**Trigger:** `/plan-workout`
+
 ---
 
 ## Installation
