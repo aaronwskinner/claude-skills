@@ -42,6 +42,18 @@ Daily morning check-in that pulls health/recovery data, builds a dashboard, gath
 
 **Trigger:** `/standup`
 
+### [`/plan-week`](./plan-week/)
+
+Sunday evening planning workflow. Scores last week, sets force-ranked priorities (pushes back on "all P1"), builds a full Mon–Sun task breakdown, creates calendar focus blocks, and opens a visual dashboard.
+
+Integrates with `/plan-workout` for gym sessions and feeds `/standup` each morning.
+
+**Requires:** `weekly-plan.md`, `career-strategy.md`, `weekly-history.md` memory files + calendar scripts. See [`plan-week/SETUP.md`](./plan-week/SETUP.md).
+
+**Trigger:** `/plan-week` (or `/plan-week test` for dry run)
+
+---
+
 ### [`/plan-workout`](./plan-workout/)
 
 Plan the coming week's workout sessions. Reads your spreadsheet history, applies micro-progression (last reps + 1, load increase at 3x12), handles deload weeks, flags recovery issues from wearable data, and compresses sessions automatically when you have a shorter window.
