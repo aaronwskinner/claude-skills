@@ -77,6 +77,8 @@ Step-by-step:
 3. Swap in the closest variation — do NOT leave bullets as the base version if a better variation exists
 4. If no variation fits, write new language and add it to BULLETS.md for future use
 
+**Only three things change per application: title, summary, and bullets.** Everything else is frozen.
+
 **Avoid Overfitting:**
 - DO swap in the right bullet variations from BULLETS.md
 - DO adjust title and summary to match role focus
@@ -88,7 +90,8 @@ Step-by-step:
 Keep EXACTLY as-is:
 - All job titles and dates
 - Company names
-- Overall structure
+- Education, certifications, skills sections
+- Overall structure and formatting
 
 ### 6. Write Cover Letter
 
