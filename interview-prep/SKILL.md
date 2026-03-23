@@ -104,6 +104,11 @@ Structure:
 
 ## DO'S AND DON'TS
 (3-5 of each, specific to this interview)
+
+---
+
+## FACT-CHECK LOG
+(See Step 5 — appended automatically after verification pass)
 ```
 
 ### Step 4: Build Quick Reference
@@ -118,7 +123,45 @@ Rules:
 - Questions to ask must start on their own page — never split across pages
 - Brain-fart safety net, not a script to read
 
-### Step 5: Upload to Drive (optional)
+### Step 5: Fact-Check Pass
+
+Before presenting the prep doc, run a structured verification of every factual claim. This is mandatory — the candidate will use these talking points with real interviewers.
+
+**What to verify:**
+- Interviewer career history (titles, dates, companies)
+- Interviewer certifications, education, board roles
+- Company metrics (revenue, headcount, funding, growth rates)
+- Product details (features, launches, pricing)
+- Industry/regulatory stats cited in domain fluency lines
+- Any claim sourced from a research subagent
+
+**How to verify:**
+1. Use WebFetch against primary sources (LinkedIn via aggregators, company website, press releases, SEC filings)
+2. Cross-reference claims from subagents against at least one independent source
+3. For interviewer profiles: check The Org, Wiza, me.sh, company About pages
+
+**Output:** Append a `## FACT-CHECK LOG` table to the full prep doc:
+
+```markdown
+## FACT-CHECK LOG
+
+| Claim | Status | Source |
+|-------|--------|--------|
+| [claim] | VERIFIED / UNVERIFIED / CONTRADICTED | [source URL or name] |
+```
+
+- **VERIFIED** — confirmed by at least one independent source
+- **UNVERIFIED** — no source found; keep in doc only if labeled `[UNVERIFIED]`
+- **CONTRADICTED** — source says something different; fix the claim immediately
+
+**Common hallucination patterns to watch for:**
+- Real person + invented certification (Six Sigma, PMP when only PMI-ACP exists)
+- Real company + invented metric (wrong revenue, wrong headcount, wrong regulatory numbers)
+- Real URL + fabricated article content
+- Correct title but wrong scope (e.g., "led implementation" when they were just a TPM at that company)
+- Outdated info presented as current (past board role cited as current)
+
+### Step 6: Upload to Drive (optional)
 
 If configured, offer to upload both docs to the company's Drive folder using your Drive upload script.
 
@@ -137,13 +180,14 @@ These files are read automatically during prep. The richer they are, the better 
 - Always read PROFILE.md, STORIES.md, and BULLETS.md before drafting
 - Be honest about gaps — never fabricate experience
 - Domain fluency lines should sound natural, not rehearsed
-- Answers should use the candidate's actual stories and numbers, not generic PM advice
+- Answers should use the candidate's actual stories and numbers, not generic advice
 - If building on a previous round's prep doc, note what's new/changed for this round
 - Bullets over paragraphs
 - Keep the Full Prep Doc thorough but scannable
 - Quick Reference must be printable and useful under pressure
 - **Cite sources for every company metric** (revenue, retention, NDR, headcount, valuation, etc.). Include the URL or source name inline so the candidate can verify. If a number cannot be sourced, mark it as **[UNVERIFIED]** — do not present it as fact.
 - **Never fabricate or hallucinate company numbers.** If a research agent returns a metric, verify it with a second source or web search before including it. If it can't be verified, either drop it or flag it clearly.
+- **Run the Fact-Check Pass (Step 5) before finalizing.** Do not skip this step. Every interviewer claim, company metric, and domain stat must be verified.
 
 ## Anti-patterns
 
@@ -153,3 +197,4 @@ These files are read automatically during prep. The richer they are, the better 
 - Don't write generic "tell me about yourself" answers — always tailored to the audience
 - Don't bury red flags — surface them so the candidate can prepare for tough questions
 - Don't skip the "They Need / You Have" table — it's the backbone of prep
+- Don't skip the Fact-Check Pass — presenting wrong facts to an interviewer is worse than presenting no facts

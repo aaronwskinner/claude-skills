@@ -57,7 +57,7 @@ If no URL provided, ask for it or check if a transcript is already in the conver
 Extract and organize:
 
 **Call Summary**
-- Who was on the call (name, title)
+- Who was on the call (name, title, tenure)
 - Interview type (phone screen, hiring manager, panel, final round)
 - Estimated duration
 
@@ -122,6 +122,7 @@ Based on what was learned, recommend:
 - Be honest about weak moments in the transcript — real feedback only
 - Don't fabricate intel that isn't in the transcript — if something is ambiguous, flag it
 - Update ALL systems (tracker, memory, todos, weekly plan) — don't skip steps
+- **Fact-check any new company intel** (revenue, headcount, product details, org changes) extracted from the transcript against public sources before writing to memory. Interviewers sometimes share approximate or outdated numbers. Cross-reference with the company website, press releases, or revenue databases before saving as fact. If unverifiable, label as "per [interviewer name], unverified."
 
 ## Anti-patterns
 
@@ -129,3 +130,4 @@ Based on what was learned, recommend:
 - Don't skip system updates — that's half the value of running this
 - Don't sugarcoat weak answers — flag them so they can be sharpened for next round
 - Don't present a wall of text — use structured format with clear headers
+- Don't write unverified interviewer claims to memory as fact — always cross-reference first
