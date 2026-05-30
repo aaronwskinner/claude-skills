@@ -84,6 +84,18 @@ Plan the coming week's workout sessions. Reads your spreadsheet history, applies
 
 ---
 
+### [`/aiq-local`](./aiq-local/)
+
+Local-only AI-usage profiler. Scans your own Claude Code transcripts and reports a transparent "AIQ" sophistication score - orchestration (subagents), context leverage (task/schedule tools), tooling authorship, breadth, and consistency - plus an inferred role. Logs each run so you can track the trend over time.
+
+Computes everything on your machine and uploads nothing (no network calls). It replicates the signals the hosted AIQ Rank tool collects, but with an open, tunable scoring heuristic instead of a hidden server-side formula.
+
+**Requires:** Python 3.7+. No setup files, no credentials.
+
+**Trigger:** `/aiq-local` (or `python ~/.claude/skills/aiq-local/scan.py --days 30`)
+
+---
+
 ## Installation
 
 Copy any skill into your project's `.claude/skills/` directory:
