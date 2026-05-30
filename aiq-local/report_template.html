@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIQ Local // signal readout</title>
+<style>
+  /* ============================================================
+     AIQ LOCAL - signal instrument theme
+     Self-contained, offline-safe (file://). No external assets.
+     The whole panel tints to the current tier color.
+     ============================================================ */
+  :root{
+    --ink:#060a0b;
+    --ink-2:#0a1011;
+    --panel:#0d1416;
+    --panel-2:#111b1d;
+    --hair:rgba(255,255,255,.07);
+    --grid:rgba(255,255,255,.028);
+    --text:#e4ece8;
+    --muted:#74837e;
+    --muted-2:#56625e;
+    /* --accent is overwritten by JS from the tier */
+    --accent:#c6ff3a;
+    --accent-soft:rgba(198,255,58,.14);
+    --accent-dim:rgba(198,255,58,.30);
+    --display:"Bahnschrift","DIN Alternate","DIN Condensed","Oswald","Arial Narrow Bold","Arial Narrow",sans-serif;
+    --mono:ui-monospace,"Cascadia Code","SF Mono","JetBrains Mono","Consolas","Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink);
+    color:var(--text);
+    font-family:var(--mono);
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+  /* atmosphere: radial glow + fine instrument grid + scanline hairlines */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(1100px 620px at 50% -8%, var(--accent-soft), transparent 60%),
+      radial-gradient(900px 700px at 100% 0%, rgba(75,225,255,.05), transparent 55%);
+    opacity:.9;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:46px 46px;
+    mask-image:radial-gradient(circle at 50% 30%, #000 0%, transparent 85%);
+    -webkit-mask-image:radial-gradient(circle at 50% 30%, #000 0%, transparent 85%);
+  }
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:38px 28px 70px}
+
+  /* ---------- header ---------- */
+  .top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;
+       padding-bottom:18px;border-bottom:1px solid var(--hair)}
+  .brand{display:flex;align-items:baseline;gap:14px}
+  .mark{font-family:var(--display);font-weight:700;letter-spacing:.06em;
+        font-size:34px;line-height:.9;text-transform:uppercase}
+  .mark b{color:var(--accent)}
+  .mark .slash{color:var(--muted-2);font-weight:400;margin:0 2px}
+  .sub{color:var(--muted);font-size:11px;letter-spacing:.22em;text-transform:uppercase}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .pill{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--hair);
+        border-radius:2px;padding:6px 11px;font-size:11px;letter-spacing:.14em;
+        text-transform:uppercase;color:var(--muted);background:rgba(255,255,255,.015)}
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);
+             box-shadow:0 0 8px var(--accent)}
+  .pill.live .dot{animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+  /* ---------- section primitives ---------- */
+  .reveal{opacity:0;transform:translateY(14px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion: reduce){
+    .reveal{opacity:1!important;transform:none!important;animation:none!important}
+    *{animation-duration:.001s!important;transition-duration:.001s!important}
+  }
+  .label{font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted-2);
+         display:flex;align-items:center;gap:10px;margin:0 0 14px}
+  .label::after{content:"";flex:1;height:1px;background:var(--hair)}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--ink-2));
+         border:1px solid var(--hair);border-radius:4px;position:relative}
+  .panel::before{content:"";position:absolute;left:0;top:0;width:34px;height:2px;background:var(--accent);
+                 box-shadow:0 0 14px var(--accent);opacity:.85}
+
+  /* ---------- hero ---------- */
+  .hero{display:grid;grid-template-columns:300px 1fr;gap:28px;margin-top:30px;padding:30px;align-items:center}
+  .gauge-wrap{position:relative;width:260px;height:260px;margin:0 auto}
+  .gauge-wrap svg{display:block;transform:rotate(-90deg)}
+  .gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .score{font-family:var(--mono);font-weight:700;font-size:74px;line-height:1;letter-spacing:-.03em;
+         font-variant-numeric:tabular-nums;color:var(--text);text-shadow:0 0 26px var(--accent-soft)}
+  .score small{font-size:22px;color:var(--muted);font-weight:400}
+  .gauge-cap{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted-2);margin-top:6px}
+  .hero-right{min-width:0}
+  .tier{font-family:var(--display);text-transform:uppercase;letter-spacing:.04em;line-height:.92;
+        font-size:58px;font-weight:700;color:var(--accent);margin:0 0 4px;text-shadow:0 0 30px var(--accent-soft)}
+  .tier-scale{display:flex;gap:6px;margin:14px 0 20px}
+  .tier-scale .seg{flex:1;height:5px;border-radius:1px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+  .tier-scale .seg.on{background:var(--accent);box-shadow:0 0 10px var(--accent-dim)}
+  .tier-scale .seg span{position:absolute;left:0;top:9px;font-size:9px;letter-spacing:.12em;
+        text-transform:uppercase;color:var(--muted-2);white-space:nowrap}
+  .meta-row{display:flex;flex-wrap:wrap;gap:10px 22px;margin-top:26px}
+  .meta{font-size:12px;color:var(--muted)}
+  .meta b{color:var(--text);font-weight:500}
+  .role-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--accent-dim);
+        border-radius:2px;padding:7px 12px;color:var(--accent);font-size:12px;letter-spacing:.1em;
+        text-transform:uppercase;background:var(--accent-soft)}
+  .lever{margin-top:22px;padding:14px 16px;border-left:2px solid var(--accent);
+         background:rgba(255,255,255,.02);font-size:13px;color:#c4cfca}
+  .lever b{color:var(--accent)}
+
+  /* ---------- grid sections ---------- */
+  .cols{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;margin-top:30px}
+  @media(max-width:900px){.cols{grid-template-columns:1fr}.hero{grid-template-columns:1fr}}
+
+  /* radar */
+  .radar-panel{padding:24px}
+  .radar-flex{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+  .radar-svg{flex:0 0 auto}
+  .dim-list{flex:1;min-width:210px;display:flex;flex-direction:column;gap:2px}
+  .dim{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:8px 0;border-bottom:1px dashed var(--hair)}
+  .dim:last-child{border-bottom:0}
+  .dim .nm{font-size:12px;letter-spacing:.04em;color:#cdd6d2;text-transform:capitalize}
+  .dim .wt{font-size:10px;color:var(--muted-2);letter-spacing:.08em}
+  .dim .val{font-variant-numeric:tabular-nums;font-weight:700;font-size:16px;color:var(--accent);text-align:right}
+  .dim .bar{grid-column:1/3;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:2px}
+  .dim .bar i{display:block;height:100%;width:0;background:var(--accent);box-shadow:0 0 8px var(--accent-dim);
+        transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+
+  /* signals */
+  .sig-panel{padding:24px}
+  .sig{display:flex;justify-content:space-between;gap:14px;padding:9px 0;border-bottom:1px solid var(--hair);font-size:12.5px}
+  .sig:last-child{border-bottom:0}
+  .sig .k{color:var(--muted)}
+  .sig .v{color:var(--text);font-variant-numeric:tabular-nums;text-align:right}
+  .sig .v em{color:var(--accent);font-style:normal;font-weight:700}
+  .sig.note .v{color:var(--muted-2)}
+
+  /* volume cards */
+  .cards{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:30px}
+  @media(max-width:900px){.cards{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:520px){.cards{grid-template-columns:repeat(2,1fr)}}
+  .card{padding:16px 14px;background:linear-gradient(180deg,var(--panel-2),var(--ink-2));
+        border:1px solid var(--hair);border-radius:3px;position:relative;overflow:hidden}
+  .card::after{content:"";position:absolute;right:-20px;bottom:-20px;width:60px;height:60px;border-radius:50%;
+        background:var(--accent-soft);filter:blur(14px)}
+  .card .n{font-weight:700;font-size:27px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--text)}
+  .card .n u{text-decoration:none;color:var(--muted);font-size:14px;font-weight:400}
+  .card .l{margin-top:6px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+
+  /* trend */
+  .trend-panel{padding:24px;margin-top:30px}
+  .trend-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .trend-head .rng{font-size:11px;color:var(--muted-2);letter-spacing:.1em}
+  .trend-empty{padding:30px 8px;text-align:center;color:var(--muted);font-size:13px}
+  .trend-empty b{color:var(--accent)}
+
+  /* footer */
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--hair);
+         display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+         font-size:11px;color:var(--muted-2);letter-spacing:.06em}
+  footer .accent{color:var(--muted)}
+  a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top reveal" style="animation-delay:.02s">
+    <div class="brand">
+      <div class="mark">AIQ<span class="slash">//</span><b>LOCAL</b></div>
+      <div class="sub" id="sub-window">signal readout</div>
+    </div>
+    <div class="badges">
+      <span class="pill live"><span class="dot"></span><span id="b-window">last 30 days</span></span>
+      <span class="pill"><span class="dot"></span>local only / 0 uploaded</span>
+      <span class="pill" id="b-time">generated --</span>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="panel hero reveal" style="animation-delay:.10s">
+    <div class="gauge-wrap">
+      <svg width="260" height="260" viewBox="0 0 260 260">
+        <circle cx="130" cy="130" r="112" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="14"/>
+        <circle id="gauge-arc" cx="130" cy="130" r="112" fill="none" stroke="var(--accent)"
+                stroke-width="14" stroke-linecap="round" stroke-dasharray="703.7" stroke-dashoffset="703.7"
+                style="transition:stroke-dashoffset 1.6s cubic-bezier(.16,.84,.3,1);filter:drop-shadow(0 0 10px var(--accent-soft))"/>
+      </svg>
+      <div class="gauge-center">
+        <div class="score"><span id="score">0</span><small>/100</small></div>
+        <div class="gauge-cap">composite</div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <h1 class="tier" id="tier">--</h1>
+      <div class="tier-scale" id="tier-scale"></div>
+      <div class="meta-row">
+        <span class="role-chip">role &middot; <b id="role">--</b></span>
+        <span class="meta">window &middot; <b id="m-window">30d</b></span>
+        <span class="meta">active days &middot; <b id="m-active">0</b></span>
+        <span class="meta">sessions &middot; <b id="m-sessions">0</b></span>
+      </div>
+      <div class="lever" id="lever">Analyzing your strongest lever...</div>
+    </div>
+  </section>
+
+  <!-- RADAR + SIGNALS -->
+  <div class="cols">
+    <section class="panel radar-panel reveal" style="animation-delay:.18s">
+      <p class="label">dimension radar</p>
+      <div class="radar-flex">
+        <svg class="radar-svg" id="radar" width="280" height="280" viewBox="0 0 280 280"></svg>
+        <div class="dim-list" id="dim-list"></div>
+      </div>
+    </section>
+
+    <section class="panel sig-panel reveal" style="animation-delay:.24s">
+      <p class="label">sophistication signals</p>
+      <div id="signals"></div>
+    </section>
+  </div>
+
+  <!-- VOLUME -->
+  <p class="label reveal" style="animation-delay:.30s;margin-top:34px">volume</p>
+  <div class="cards reveal" style="animation-delay:.32s" id="cards"></div>
+
+  <!-- TREND -->
+  <section class="panel trend-panel reveal" style="animation-delay:.38s">
+    <div class="trend-head">
+      <p class="label" style="margin:0">score trend</p>
+      <span class="rng" id="trend-range"></span>
+    </div>
+    <div id="trend"></div>
+  </section>
+
+  <footer class="reveal" style="animation-delay:.44s">
+    <span>AIQ LOCAL &middot; transparent heuristic &middot; weights/targets live in <span class="accent">scan.py</span></span>
+    <span>reads ~/.claude/projects &middot; no network calls &middot; not affiliated with aiqrank.com</span>
+  </footer>
+</div>
+
+<script>
+/* AIQ_DATA_START */
+const DATA = {
+  "generated_at":"2026-05-30T14:59:00Z","days":30,"score":79.9,"tier":"Power User",
+  "weights":{"orchestration":25,"context_leverage":15,"planning":10,"authorship":20,"breadth":15,"consistency":15},
+  "dimensions":{"orchestration":59.5,"context_leverage":100,"planning":0,"authorship":100,"breadth":100,"consistency":100},
+  "role":{"inferred_role":"devops","confident":true,"top3":[["devops",3.71],["product",0.62],["sales",0.36]]},
+  "totals":{"active_days":30,"sessions":71,"messages":26382,"tool_calls":7768,
+    "tokens_input":0,"tokens_output":0,"tokens_cache_read":4600000000,"tokens_cache_creation":42819272,
+    "reasoning_blocks":4769,"orchestration_days":15,"parallel_agent_turns":2,"max_parallel_agents":4,
+    "context_leverage_days":16,"plan_mode_invocations":0,"plan_mode_days":0,"authorship_writes":35,
+    "authored_skills":10,"max_concurrent_sessions":6,"distinct_tools":96,"distinct_skills":20,
+    "distinct_mcp_servers":14,"user_messages":2158,"user_corrections":106},
+  "history":[
+    {"run_at":"2026-05-12","score":61.2},{"run_at":"2026-05-18","score":68.0},
+    {"run_at":"2026-05-24","score":74.5},{"run_at":"2026-05-30","score":79.9}
+  ]
+};
+/* AIQ_DATA_END */
+
+(function(){
+  const D = DATA, T = D.totals || {};
+  const TIERS = [["Exploring",0,"#8aa0b0"],["Practitioner",40,"#ffb347"],
+                 ["Power User",60,"#c6ff3a"],["Orchestrator",80,"#4be1ff"]];
+
+  // tier color drives the whole accent
+  function tierColor(s){let c="#8aa0b0";for(const[,f,col]of TIERS)if(s>=f)c=col;return c;}
+  function hexA(hex,a){const n=hex.replace('#','');const r=parseInt(n.slice(0,2),16),
+    g=parseInt(n.slice(2,4),16),b=parseInt(n.slice(4,6),16);return`rgba(${r},${g},${b},${a})`;}
+  const acc = tierColor(D.score);
+  const rs = document.documentElement.style;
+  rs.setProperty('--accent',acc);
+  rs.setProperty('--accent-soft',hexA(acc,.14));
+  rs.setProperty('--accent-dim',hexA(acc,.34));
+
+  // helpers
+  const fmt = n => (n==null?0:n).toLocaleString('en-US');
+  function compact(n){n=n||0;if(n>=1e9)return(n/1e9).toFixed(n>=1e10?0:1)+'B';
+    if(n>=1e6)return(n/1e6).toFixed(n>=1e7?0:1)+'M';if(n>=1e3)return(n/1e3).toFixed(n>=1e4?0:1)+'K';return''+n;}
+  const $ = id => document.getElementById(id);
+
+  // window + time
+  $('b-window').textContent='last '+D.days+' days';
+  $('m-window').textContent=D.days+'d';
+  $('sub-window').textContent='signal readout';
+  if(D.generated_at){const dt=new Date(D.generated_at);
+    if(!isNaN(dt))$('b-time').textContent='gen '+dt.toISOString().slice(0,16).replace('T',' ')+'Z';}
+
+  // role
+  $('role').textContent=(D.role&&D.role.inferred_role)||'unknown';
+
+  // hero meta
+  $('m-active').textContent=fmt(T.active_days);
+  $('m-sessions').textContent=fmt(T.sessions);
+
+  // tier name + scale
+  $('tier').textContent=D.tier||'';
+  const ts=$('tier-scale');
+  TIERS.forEach((t,i)=>{const seg=document.createElement('div');
+    seg.className='seg'+(D.score>=t[1]?' on':'');
+    const sp=document.createElement('span');sp.textContent=t[0];seg.appendChild(sp);ts.appendChild(seg);});
+
+  // gauge + score count-up
+  const arc=$('gauge-arc'), C=2*Math.PI*112;
+  arc.setAttribute('stroke-dasharray',C.toFixed(1));
+  arc.setAttribute('stroke-dashoffset',C.toFixed(1));
+  function countUp(el,to,dur,dec){const t0=performance.now();
+    (function step(t){let p=Math.min(1,(t-t0)/dur);p=1-Math.pow(1-p,3);
+      el.textContent=(to*p).toFixed(dec);if(p<1)requestAnimationFrame(step);})(t0);}
+  requestAnimationFrame(()=>{setTimeout(()=>{
+    arc.setAttribute('stroke-dashoffset',(C*(1-D.score/100)).toFixed(1));
+    countUp($('score'),D.score,1500,1);},120);});
+
+  // dimensions list + bars
+  const order=['orchestration','context_leverage','planning','authorship','breadth','consistency'];
+  const dl=$('dim-list');
+  order.forEach(k=>{const v=(D.dimensions&&D.dimensions[k])||0,w=(D.weights&&D.weights[k])||0;
+    const row=document.createElement('div');row.className='dim';
+    row.innerHTML=`<span class="nm">${k.replace(/_/g,' ')}</span>
+      <span class="val">${v.toFixed(0)}</span>
+      <span class="wt">weight ${w}</span><span></span>
+      <span class="bar"><i></i></span>`;
+    dl.appendChild(row);
+    setTimeout(()=>{row.querySelector('.bar i').style.width=Math.min(100,v)+'%';},260);});
+
+  // radar
+  (function(){const svg=$('radar'),cx=140,cy=140,R=104,N=order.length;
+    const ns='http://www.w3.org/2000/svg';
+    const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/N;return[cx+r*Math.cos(a),cy+r*Math.sin(a)];};
+    function poly(r,stroke,fill,sw){const p=document.createElementNS(ns,'polygon');
+      p.setAttribute('points',order.map((_,i)=>pt(i,r).map(x=>x.toFixed(1)).join(',')).join(' '));
+      p.setAttribute('fill',fill||'none');p.setAttribute('stroke',stroke);p.setAttribute('stroke-width',sw||1);
+      svg.appendChild(p);}
+    [0.25,0.5,0.75,1].forEach(f=>poly(R*f,'rgba(255,255,255,.10)','none',1));
+    order.forEach((_,i)=>{const[x,y]=pt(i,R);const l=document.createElementNS(ns,'line');
+      l.setAttribute('x1',cx);l.setAttribute('y1',cy);l.setAttribute('x2',x);l.setAttribute('y2',y);
+      l.setAttribute('stroke','rgba(255,255,255,.08)');svg.appendChild(l);});
+    // data polygon (animated scale from center)
+    const dp=document.createElementNS(ns,'polygon');
+    dp.setAttribute('points',order.map((k,i)=>pt(i,R*((D.dimensions[k]||0)/100)).map(x=>x.toFixed(1)).join(',')).join(' '));
+    dp.setAttribute('fill',hexA(acc,.18));dp.setAttribute('stroke',acc);dp.setAttribute('stroke-width',2);
+    dp.setAttribute('stroke-linejoin','round');
+    dp.style.transformOrigin='140px 140px';dp.style.transform='scale(0)';
+    dp.style.transition='transform 1s cubic-bezier(.2,.8,.2,1) .35s';
+    svg.appendChild(dp);
+    order.forEach((k,i)=>{const[x,y]=pt(i,R*((D.dimensions[k]||0)/100));
+      const c=document.createElementNS(ns,'circle');c.setAttribute('cx',x);c.setAttribute('cy',y);
+      c.setAttribute('r',3);c.setAttribute('fill',acc);svg.appendChild(c);});
+    // axis labels
+    order.forEach((k,i)=>{const[x,y]=pt(i,R+18);const t=document.createElementNS(ns,'text');
+      t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('fill','#74837e');
+      t.setAttribute('font-size','9');t.setAttribute('font-family','var(--mono)');
+      t.setAttribute('letter-spacing','.5');
+      t.setAttribute('text-anchor',Math.abs(x-cx)<8?'middle':(x<cx?'end':'start'));
+      t.setAttribute('dominant-baseline','middle');
+      t.textContent=k.replace('_',' ').slice(0,11);svg.appendChild(t);});
+    requestAnimationFrame(()=>setTimeout(()=>{dp.style.transform='scale(1)';},60));
+  })();
+
+  // signals
+  const corr = T.user_messages? (100*T.user_corrections/T.user_messages):0;
+  const sig=[
+    ['orchestration',`<em>${T.orchestration_days||0}</em> days &middot; ${T.parallel_agent_turns||0} parallel turns &middot; peak <em>${T.max_parallel_agents||0}</em>/turn`],
+    ['context leverage',`<em>${T.context_leverage_days||0}</em> days on task / schedule tools`],
+    ['plan mode',`<em>${T.plan_mode_invocations||0}</em> invocations on ${T.plan_mode_days||0} days`],
+    ['authorship',`<em>${T.authorship_writes||0}</em> skill / mcp / claude writes &middot; ${T.authored_skills||0} skills built`],
+    ['peak concurrency',`<em>${T.max_concurrent_sessions||0}</em> sessions at once <u style="color:#56625e">(approx)</u>`],
+    ['breadth',`<em>${T.distinct_tools||0}</em> tools &middot; ${T.distinct_skills||0} skills &middot; ${T.distinct_mcp_servers||0} mcp`],
+  ];
+  const sc=$('signals');
+  sig.forEach(([k,v])=>{const d=document.createElement('div');d.className='sig';
+    d.innerHTML=`<span class="k">${k}</span><span class="v">${v}</span>`;sc.appendChild(d);});
+  const note=document.createElement('div');note.className='sig note';
+  note.innerHTML=`<span class="k">self-correction rate</span><span class="v">${corr.toFixed(1)}% &middot; ${T.user_corrections||0}/${T.user_messages||0} msgs &middot; reported, not scored</span>`;
+  sc.appendChild(note);
+
+  // volume cards
+  const tok=(T.tokens_input||0)+(T.tokens_output||0)+(T.tokens_cache_read||0)+(T.tokens_cache_creation||0);
+  const cards=[
+    [T.active_days,'active days',0],[T.sessions,'sessions',0],[T.messages,'messages',0],
+    [T.tool_calls,'tool calls',0],[tok,'tokens (incl cache)',1],[T.reasoning_blocks,'reasoning blocks',0]
+  ];
+  const cc=$('cards');
+  cards.forEach(([n,l,comp])=>{const c=document.createElement('div');c.className='card';
+    c.innerHTML=`<div class="n">${comp?compact(n):'<span class="cu">0</span>'}</div><div class="l">${l}</div>`;
+    cc.appendChild(c);
+    if(!comp){const el=c.querySelector('.cu');countUp(el,n||0,1300,0);
+      // ensure thousands formatting after count
+      setTimeout(()=>{el.textContent=fmt(n||0);},1350);}});
+
+  // trend
+  (function(){const box=$('trend'),h=D.history||[];
+    if(h.length<2){box.innerHTML='<div class="trend-empty">Need <b>2+ runs</b> to chart a trend. '+
+      'Run <b>/aiq-local</b> again over time and your score line appears here.</div>';
+      $('trend-range').textContent=h.length?'1 run logged':'no runs yet';return;}
+    const W=1100,H=210,pad=34, n=h.length;
+    const vals=h.map(r=>r.score);
+    const lo=Math.max(0,Math.floor(Math.min(...vals)/10)*10-5),
+          hi=Math.min(100,Math.ceil(Math.max(...vals)/10)*10+5);
+    const X=i=>pad+i*(W-2*pad)/(n-1), Y=v=>H-pad-(v-lo)/(hi-lo)*(H-2*pad);
+    let line='',area='';
+    h.forEach((r,i)=>{const x=X(i).toFixed(1),y=Y(r.score).toFixed(1);
+      line+=(i?'L':'M')+x+' '+y+' ';area+=(i?'L':'M')+x+' '+y+' ';});
+    area=`M${pad} ${H-pad} `+area.replace(/^M/,'L')+`L${(W-pad)} ${H-pad} Z`;
+    let grid='';[0,.5,1].forEach(f=>{const yv=lo+(hi-lo)*f,y=Y(yv).toFixed(1);
+      grid+=`<line x1="${pad}" y1="${y}" x2="${W-pad}" y2="${y}" stroke="rgba(255,255,255,.07)"/>`+
+        `<text x="6" y="${y}" fill="#56625e" font-size="10" dominant-baseline="middle">${yv.toFixed(0)}</text>`;});
+    let dots='';h.forEach((r,i)=>{dots+=`<circle cx="${X(i).toFixed(1)}" cy="${Y(r.score).toFixed(1)}" r="3.5" fill="${acc}"/>`;});
+    const last=h[h.length-1].score, first=h[0].score, delta=(last-first).toFixed(1);
+    const lx=X(n-1).toFixed(1), ly=Y(last).toFixed(1);
+    box.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="none" style="display:block">
+      <defs><linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${hexA(acc,.30)}"/><stop offset="1" stop-color="${hexA(acc,0)}"/>
+      </linearGradient></defs>
+      ${grid}<path d="${area}" fill="url(#tg)"/>
+      <path d="${line}" fill="none" stroke="${acc}" stroke-width="2.5" stroke-linejoin="round"
+            style="filter:drop-shadow(0 0 6px ${hexA(acc,.5)})"/>
+      ${dots}
+      <circle cx="${lx}" cy="${ly}" r="5.5" fill="none" stroke="${acc}" stroke-width="2"/>
+    </svg>`;
+    $('trend-range').textContent=`${n} runs &middot; ${first.toFixed(0)} -> ${last.toFixed(0)} (${delta>=0?'+':''}${delta})`;
+  })();
+
+  // biggest lever
+  (function(){let lowK=null,low=1e9;order.forEach(k=>{const v=D.dimensions[k];
+    if(v<low){low=v;lowK=k;}});
+    const w=(D.weights&&D.weights[lowK])||0;
+    const gain=((100-low)*w/100).toFixed(1);
+    const el=$('lever');
+    if(D.score>=80){el.innerHTML=`<b>Orchestrator tier reached.</b> Strongest remaining gap is `+
+      `<b>${lowK.replace(/_/g,' ')}</b> at ${low.toFixed(0)}/100 - closing it adds up to ${gain} pts.`;}
+    else{el.innerHTML=`Biggest lever: <b>${lowK.replace(/_/g,' ')}</b> sits at ${low.toFixed(0)}/100 `+
+      `(weight ${w}). Maxing it adds up to <b>+${gain} pts</b> toward the next tier.`;}
+  })();
+})();
+</script>
+</body>
+</html>

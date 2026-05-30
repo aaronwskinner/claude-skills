@@ -41,8 +41,20 @@ instead, point at that project's `.claude/skills/aiq-local/scan.py`.
 
 Flags:
 - `--days N` - lookback window (default 30)
+- `--html` - generate a self-contained HTML dashboard and open it in the browser (gauge, dimension radar, volume cards, signal table, and a score-trend chart from history). Writes to `~/.aiq-local/report.html`.
+- `--out PATH` - override the `--html` output path
+- `--no-open` - with `--html`, write the file but don't launch the browser
 - `--json` - raw JSON instead of the report
 - `--no-log` - don't append this run to history
+
+For the visual dashboard, run with `--html`:
+
+```bash
+PYTHONIOENCODING=utf-8 python ~/.claude/skills/aiq-local/scan.py --days 30 --html
+```
+
+The dashboard reads `report_template.html` (next to `scan.py`) and injects the
+scan data; it is fully self-contained and opens offline via `file://`.
 
 Each run appends to `~/.aiq-local/history.json` (override with the
 `AIQ_LOCAL_HISTORY` env var) so you can track the trend; the report shows the

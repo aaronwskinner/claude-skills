@@ -28,6 +28,7 @@ import json
 import os
 import re
 import sys
+import webbrowser
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -362,6 +363,31 @@ def composite(totals):
     return round(score, 1), tier, dims
 
 
+def render_html(result, score, tier, dims, days, out_path):
+    """Inject the scan payload into report_template.html and write a
+    self-contained dashboard. Returns the output path."""
+    tpl = Path(__file__).resolve().parent / "report_template.html"
+    html = tpl.read_text(encoding="utf-8")
+    # trend: same-window runs only, like-for-like
+    hist = [{"run_at": (r.get("run_at") or "")[:10], "score": r.get("score")}
+            for r in load_history()
+            if r.get("days") == days and isinstance(r.get("score"), (int, float))]
+    payload = {
+        "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "days": days, "score": score, "tier": tier,
+        "weights": WEIGHTS, "dimensions": dims,
+        "role": result.get("role", {}), "totals": result.get("totals", {}),
+        "history": hist,
+    }
+    block = "/* AIQ_DATA_START */\nconst DATA = " + json.dumps(payload) + ";\n/* AIQ_DATA_END */"
+    html = re.sub(r"/\* AIQ_DATA_START \*/.*?/\* AIQ_DATA_END \*/",
+                  lambda m: block, html, flags=re.S)
+    out = Path(out_path) if out_path else (Path(os.path.expanduser("~")) / ".aiq-local" / "report.html")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(html, encoding="utf-8")
+    return str(out)
+
+
 def history_path():
     # User-home so it survives wherever the skill is installed and never
     # writes into a cloned repo. Override with AIQ_LOCAL_HISTORY if you like.
@@ -446,6 +472,9 @@ def main(argv):
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=30)
     ap.add_argument("--json", action="store_true", help="emit raw JSON instead of the report")
+    ap.add_argument("--html", action="store_true", help="generate a self-contained HTML dashboard and open it")
+    ap.add_argument("--out", default=None, help="output path for --html (default ~/.aiq-local/report.html)")
+    ap.add_argument("--no-open", action="store_true", help="with --html, do not open the browser")
     ap.add_argument("--no-log", action="store_true", help="do not append to history.json")
     args = ap.parse_args(argv)
 
@@ -457,9 +486,9 @@ def main(argv):
                           "dimensions": dims, **result}, indent=2))
         return 0
 
-    hist = load_history()
-    prev = hist[-1]["score"] if hist else None
-    print(render(result, score, tier, dims, args.days, prev))
+    # previous same-window score (before logging this run) for the text delta
+    prev = next((r["score"] for r in reversed(load_history())
+                 if r.get("days") == args.days), None)
 
     if not args.no_log:
         append_history({
@@ -468,6 +497,18 @@ def main(argv):
             "dimensions": dims, "role": result["role"].get("inferred_role"),
             "totals": result["totals"],
         })
+
+    if args.html:
+        out = render_html(result, score, tier, dims, args.days, args.out)
+        print(f"AIQ dashboard written to {out}")
+        if not args.no_open:
+            try:
+                webbrowser.open(Path(out).as_uri())
+            except Exception:
+                pass
+        return 0
+
+    print(render(result, score, tier, dims, args.days, prev))
     return 0
 
 
