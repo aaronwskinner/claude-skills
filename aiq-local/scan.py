@@ -95,6 +95,42 @@ TARGETS = {
 }
 TIERS = [(80, "Orchestrator"), (60, "Power User"), (40, "Practitioner"), (0, "Exploring")]
 
+# Per-dimension guidance. For each dimension: why it matters for fluency and
+# efficiency, the concrete behavior change, and the payoff. Surfaced as
+# recommendations ranked by how many points the change can move.
+PLAYBOOK = {
+    "orchestration": {
+        "matters": "Subagents do independent work in parallel and keep that detail out of your main context.",
+        "move": "Delegate research, wide searches, and independent edits to subagents; fan out 2+ at once when tasks don't depend on each other.",
+        "impact": "Big tasks finish in less wall-clock time, and your main thread stays focused instead of filling with output you won't read.",
+    },
+    "context_leverage": {
+        "matters": "Task lists and scheduling tools let Claude hold multi-step work and resume it instead of losing the thread.",
+        "move": "Use task tracking on anything multi-step; schedule or monitor long-running work rather than babysitting it.",
+        "impact": "Fewer dropped steps on long jobs, and you can walk away and come back without re-briefing.",
+    },
+    "planning": {
+        "matters": "Plan mode makes Claude think through the approach and get your sign-off before editing, so wrong assumptions surface early.",
+        "move": "Plan non-trivial tasks before any edits (Shift+Tab, or you've now set plan mode as the default).",
+        "impact": "Less rework from wrong-direction edits. You steer before code is written, not after you've read it.",
+    },
+    "authorship": {
+        "matters": "Skills, MCP servers, and CLAUDE.md turn one-off prompting into repeatable, pre-configured workflows.",
+        "move": "When you repeat a workflow, capture it as a skill; record project conventions in CLAUDE.md; wire integrations via MCP.",
+        "impact": "Each saved workflow compounds. You stop re-explaining context and Claude starts every session already knowing your setup.",
+    },
+    "breadth": {
+        "matters": "Reaching for the right tool, skill, or MCP server beats forcing everything through plain chat.",
+        "move": "Lean on dedicated tools (search, tasks, integrations) and your own skills instead of ad-hoc prompts and copy-paste.",
+        "impact": "Faster, more reliable results and less manual shuttling of data between Claude and other systems.",
+    },
+    "consistency": {
+        "matters": "Fluency builds from sustained use. Sporadic use means re-learning your own workflow each time.",
+        "move": "Make Claude Code part of the daily loop, not just a break-glass tool for hard problems.",
+        "impact": "Compounding familiarity. Your setup, habits, and shortcuts stay warm so each session starts faster.",
+    },
+}
+
 
 def pct(value, target):
     if target <= 0:
@@ -329,7 +365,9 @@ def classify_role(messages):
     corpus = " ".join(m.lower() for m in messages if isinstance(m, str))
     scores = {}
     for role, vocab in ROLE_KEYWORDS.items():
-        matches = sum(corpus.count(kw) for kw in vocab)
+        # Word-boundary matching: short keywords like "ci"/"data"/"code" must
+        # not match inside other words ("specific", "decision", "social").
+        matches = sum(len(re.findall(r"\b" + re.escape(kw) + r"\b", corpus)) for kw in vocab)
         scores[role] = matches / len(vocab) if vocab else 0.0
     ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
     if not ranked or ranked[0][1] == 0:
@@ -363,6 +401,22 @@ def composite(totals):
     return round(score, 1), tier, dims
 
 
+def recommendations(dims, top=3):
+    """Rank behavior changes by leverage = how many composite points closing
+    each dimension's gap can move. Returns the top entries with guidance."""
+    recs = []
+    for k in WEIGHTS:
+        v = dims.get(k, 0)
+        gain = round((100 - v) * WEIGHTS[k] / 100.0, 1)
+        if gain <= 0:
+            continue
+        p = PLAYBOOK[k]
+        recs.append({"key": k, "value": round(v, 1), "weight": WEIGHTS[k], "gain": gain,
+                     "matters": p["matters"], "move": p["move"], "impact": p["impact"]})
+    recs.sort(key=lambda r: r["gain"], reverse=True)
+    return recs[:top]
+
+
 def render_html(result, score, tier, dims, days, out_path):
     """Inject the scan payload into report_template.html and write a
     self-contained dashboard. Returns the output path."""
@@ -378,6 +432,7 @@ def render_html(result, score, tier, dims, days, out_path):
         "weights": WEIGHTS, "dimensions": dims,
         "role": result.get("role", {}), "totals": result.get("totals", {}),
         "history": hist,
+        "recommendations": recommendations(dims),
     }
     block = "/* AIQ_DATA_START */\nconst DATA = " + json.dumps(payload) + ";\n/* AIQ_DATA_END */"
     html = re.sub(r"/\* AIQ_DATA_START \*/.*?/\* AIQ_DATA_END \*/",
@@ -464,7 +519,16 @@ def render(result, score, tier, dims, days, prev):
     L.append(f"    self-correction rate: {cr:.1f}%  ({t['user_corrections']}/{t['user_messages']} msgs)  [reported, not scored]")
     if result["authored_skill_names"]:
         L.append("\n  Skills you authored: " + ", ".join(result["authored_skill_names"]))
-    L.append("=" * 60)
+
+    recs = recommendations(dims)
+    if recs:
+        L.append("\n  Where to level up (ranked by leverage):")
+        for r in recs:
+            L.append(f"\n    {r['key'].replace('_',' ').upper()}  -  {r['value']:.0f}/100, weight {r['weight']}  ->  up to +{r['gain']} pts")
+            L.append(f"      why  : {r['matters']}")
+            L.append(f"      do   : {r['move']}")
+            L.append(f"      payoff: {r['impact']}")
+    L.append("\n" + "=" * 60)
     return "\n".join(L)
 
 
