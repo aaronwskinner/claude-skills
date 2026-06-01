@@ -76,8 +76,12 @@ file. Safe to run on any machine.
 
 ## Known caveat (role inference)
 
-Role uses naive substring counting (faithful to AIQ Rank's code), so short
-keywords like `ci`, `data`, `code` over-match and can mislabel a product or
-founder user as `devops`/`engineer`. To make roles accurate, switch the
-matching in `classify_role` to word-boundary regex - this diverges from AIQ
-but is more correct.
+Role is a keyword match on your first user messages, using word-boundary
+matching so short keywords like `ci`, `data`, `code` don't match inside other
+words (`specific`, `decision`, `social`). It's a rough signal: if your prompts
+are dominated by build-and-debug language, you may read as `engineer`, or fall
+back to "low confidence -> default" when no single role dominates, rather than
+your actual function (e.g. product or founder). The composite score and the six
+dimensions do not depend on role - it's a label only. A sharper signal would
+need full-conversation classification instead of first-message keywords, which
+is a larger change.
