@@ -65,8 +65,9 @@ delta vs your previous run.
 1. Run the command (default 30 days unless a window is specified).
 2. Show the report.
 3. Add a 2-3 bullet read: current tier, the single biggest lever to raise the
-   score (usually the lowest dimension, often planning), and the trend vs last
-   run if history exists.
+   score (the #1 entry in "Where to level up", ranked by leverage = how many
+   composite points closing that dimension's gap can move, not just the lowest
+   raw value), and the trend vs last run if history exists.
 
 ## Privacy
 
